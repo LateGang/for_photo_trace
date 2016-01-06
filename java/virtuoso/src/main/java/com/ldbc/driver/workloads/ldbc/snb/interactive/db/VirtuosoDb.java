@@ -12,6 +12,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -63,6 +66,7 @@ public class VirtuosoDb extends Db {
     protected void onInit(Map<String, String> properties, LoggingService loggingService) throws DbException {
 	try {
 	    virtuosoDbConnectionState = new VirtuosoDbConnectionState(properties);
+	    virtuosoDbConnectionState.prepareImages(properties);
 	} catch (ClassNotFoundException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
@@ -255,6 +259,45 @@ public class VirtuosoDb extends Db {
 		    }
 		} else {
 		    System.out.println(tag + " --- ERROR: create file " + file.getPath() + " failed, it already exists");
+		}
+	    } catch (Throwable e) {
+		e.printStackTrace();
+	    }
+	}
+
+	public void prepareImages(Map<String, String> properties) {
+	    String postFileName = properties.get("postFile");
+	    List<String> images = new ArrayList<String>();
+	    try {
+		if (postFileName != null) {
+		    InputStream in = new FileInputStream(postFileName);
+		    InputStreamReader inr = new InputStreamReader(in, Charset.forName("UTF-8"));
+		    BufferedReader br = new BufferedReader(inr);
+		    
+		    String line = null;
+		    int line_count = 0;
+		    int image_count = 0;
+		    while ((line = br.readLine()) != null) {
+			line_count ++;
+			String[] fields = line.split("\\|");
+			if (fields[1].startsWith("photo")) {
+			    images.add(fields[1]);
+			    image_count ++;
+			}
+		    }
+
+		    if (!images.isEmpty()) {
+			int count = images.size();
+			for (int i = 0; i < count; i ++) {
+			    String image = images.get(i);
+			    createAndFillFile(image, "VirtuosoDbConnectionState");
+			}
+		    }
+		    
+		    System.out.println("Finished preparing image files, postFile contains " + line_count + " lines and " + image_count + " images");
+		} else {
+		    System.out.println("ERROR: no postFile in virtuoso_configuration.properties");
+		    throw new Throwable();
 		}
 	    } catch (Throwable e) {
 		e.printStackTrace();
@@ -2012,7 +2055,7 @@ public class VirtuosoDb extends Db {
 		conn.close();
 
 		String image = operation.imageFile();
-		if (image != null) {
+		if (image.startsWith("photo")) {
 		    state.createAndFillFile(image, "LdbcUpdate6AddPostToVirtuoso");
 		}
 	    } catch (Throwable e) {
