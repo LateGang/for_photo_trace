@@ -171,7 +171,7 @@ public class VirtuosoDb extends Db {
 
 	    String tmp = properties.get("photoSize");
 	    if (tmp == null) {
-		photoSize = 1048576; // By default, 1MB;
+		photoSize = 1024; // By default, 1KB;
 	    } else {
 		photoSize = Integer.parseInt(tmp);
 	    }
@@ -232,6 +232,75 @@ public class VirtuosoDb extends Db {
 
 	}
 
+	public void createAndFillFile(String name, String tag) {
+	    File file = null;
+
+	    try {
+		file = new File(photoDir + "/" + name);
+		if (!file.exists()) {
+		    if (file.createNewFile()) {
+			FileOutputStream out = new FileOutputStream(file, true);
+			StringBuffer sb = new StringBuffer();
+
+			for (int i = 0; i < photoSize / 64; i ++) {
+			    sb.append("superblocksuperblocksuperblocksuperblocksuperblocksuperblocksupe");
+			}
+			out.write(sb.toString().getBytes("utf-8"));
+			out.close();
+			if (printResults) {
+			    System.out.println(tag + " create file " + file.getPath() + " succeeded");
+			}
+		    } else {
+			System.out.println(tag + " --- ERROR: create file " + file.getPath() + " failed");
+		    }
+		} else {
+		    System.out.println(tag + " --- ERROR: create file " + file.getPath() + " failed, it already exists");
+		}
+	    } catch (Throwable e) {
+		e.printStackTrace();
+	    }
+	}
+
+	public void scanFile(String name, String tag) {
+	    int ret = 0;
+	    File file = null;
+	    long file_size = 0;
+	    long read_count = 0;
+
+	    try {
+		file = new File(photoDir + "/" + name);
+		byte[] buf = new byte[4096];
+
+		if (file.exists() && !file.isDirectory()) {
+		    file_size = file.length();
+		    FileInputStream in = new FileInputStream(file);
+		    while ((ret = in.read(buf)) != -1) {
+			read_count += ret;
+		    }
+		    in.close();
+
+		    if (read_count != file_size) {
+			System.out.println(tag + " --- ERROR: read file " + file.getPath() + 
+					   " failed, read " + read_count + "bytes, file size " + file_size + " bytes");
+		    } else if (printResults) {
+			System.out.println(tag + " read file " + file.getPath() + " succeeded");
+		    } 
+		} else {
+		    System.out.println(tag + " --- ERROR: file " + file.getPath() + 
+				       " does not exist, or is a directory");   
+		}
+	    } catch (Throwable e) {
+		e.printStackTrace();
+	    }
+	}
+
+	public void scanFiles(List<String> names, String tag) {
+	    int count= names.size();
+	    for (int i = 0; i < count; i ++) {
+		String name = names.get(i);
+		scanFile(name, tag);
+	    }
+	}
     }
 
     public static class LdbcQuery1ToVirtuoso implements OperationHandler<LdbcQuery1, VirtuosoDbConnectionState> {
@@ -320,6 +389,7 @@ public class VirtuosoDb extends Db {
 	    Connection conn = state.getConn();
 	    Statement stmt = null;
 	    List<LdbcQuery2Result> RESULT = new ArrayList<LdbcQuery2Result>();
+	    List<String> images = new ArrayList<String>();
 	    int results_count = 0; RESULT.clear();
 	    try {
 		String queryString = file2string(new File(state.getQueryDir(), "query2.txt"));
@@ -358,13 +428,21 @@ public class VirtuosoDb extends Db {
 		    else
 			postid = Long.parseLong(result.getString(4).substring(47));
 		    String content = new String(result.getString(5).getBytes("ISO-8859-1"));
+		    if (content.startsWith("photo")) {
+			images.add(content);
+		    }
 		    long postdate = result.getLong(6);
 		    LdbcQuery2Result tmp = new LdbcQuery2Result(id, firstName, lastName, postid, content, postdate);
 		    if (state.isPrintResults())
 			System.out.println(tmp.toString());
 		    RESULT.add(tmp);
 		}
-		stmt.close();conn.close();
+		stmt.close();
+		conn.close();
+
+		if (!images.isEmpty()) {
+		    state.scanFiles(images, "LdbcQuery2ToVirtuoso");
+		}
 	    } catch (SQLException e) {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
@@ -604,6 +682,7 @@ public class VirtuosoDb extends Db {
 	    Connection conn = state.getConn();
 	    Statement stmt = null;
 	    List<LdbcQuery7Result> RESULT = new ArrayList<LdbcQuery7Result>();
+	    List<String> images = new ArrayList<String>();
 	    int results_count = 0; RESULT.clear();
 	    try {
 		String queryString = file2string(new File(state.getQueryDir(), "query7.txt"));
@@ -638,13 +717,21 @@ public class VirtuosoDb extends Db {
 		    else
 			postId = Long.parseLong(result.getString(6).substring(47));
 		    String postContent = new String(result.getString(7).getBytes("ISO-8859-1"));;
+		    if (postContent.startsWith("photo")) {
+			images.add(postContent);
+		    }
 		    int milliSecondDelay = result.getInt(8);
 		    LdbcQuery7Result tmp = new LdbcQuery7Result(personId, personFirstName, personLastName, likeCreationDate, postId, postContent, milliSecondDelay, isNew);
 		    if (state.isPrintResults())
 			System.out.println(tmp.toString());
 		    RESULT.add(tmp);
 		}
-		stmt.close();conn.close();
+		stmt.close();
+		conn.close();
+
+		if (!images.isEmpty()) {
+		    state.scanFiles(images, "LdbcQuery7ToVirtuoso");
+		}
 	    } catch (SQLException e) {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
@@ -727,6 +814,7 @@ public class VirtuosoDb extends Db {
 	    Connection conn = state.getConn();
 	    Statement stmt = null;
 	    List<LdbcQuery9Result> RESULT = new ArrayList<LdbcQuery9Result>();
+	    List<String> images = new ArrayList<String>();
 	    int results_count = 0; RESULT.clear();
 	    try {
 		String queryString = file2string(new File(state.getQueryDir(), "query9.txt"));
@@ -763,13 +851,20 @@ public class VirtuosoDb extends Db {
 		    else
 			postOrCommentId = Long.parseLong(result.getString(4).substring(47));
 		    String postOrCommentContent = new String(result.getString(5).getBytes("ISO-8859-1"));
+		    if (postOrCommentContent.startsWith("photo")) {
+			images.add(postOrCommentContent);
+		    }
 		    long postOrCommentCreationDate = result.getLong(6);
 		    LdbcQuery9Result tmp = new LdbcQuery9Result(personId, personFirstName, personLastName, postOrCommentId, postOrCommentContent, postOrCommentCreationDate);
 		    if (state.isPrintResults())
 			System.out.println(tmp.toString());
 		    RESULT.add(tmp);
 		}
-		stmt.close();conn.close();
+		stmt.close();
+		conn.close();
+		if (!images.isEmpty()) {
+		    state.scanFiles(images, "LdbcQuery9ToVirtuoso");
+		}
 	    } catch (SQLException e) {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
@@ -1117,7 +1212,6 @@ public class VirtuosoDb extends Db {
 	    List<String> images = new ArrayList<String>();
 	    
 	    int results_count = 0;
-	    int images_count= 0;
 	    Connection conn = state.getConn();
 	    CallableStatement stmt1 = null;
 	    try {
@@ -1160,33 +1254,8 @@ public class VirtuosoDb extends Db {
 		stmt1.close();
 		conn.close();
 
-		images_count = images.size();
-		for (int i = 0; i < images_count; i ++) {
-		    String image = images.get(i);
-		    long file_size = 0;
-		    long read_count = 0;
-		    int ret = 0;
-		    File file = new File(state.getPhotoDir() + "/" + image);
-		    byte[] buf = new byte[4096];
-		
-		    if (file.exists() && !file.isDirectory()) {
-			file_size = file.length();
-			FileInputStream in = new FileInputStream(file);
-			while ((ret = in.read(buf)) != -1) {
-			    read_count += ret;
-			}
-			in.close();
-		    
-			if (read_count != file_size) {
-			    System.out.println("LdbcShortQuery2ToVirtuoso --- ERROR: read file " + file.getPath() + 
-					       " failed, read " + read_count + "bytes, file size " + file_size + " bytes");
-			} else if (state.isPrintResults()) {
-			    System.out.println("LdbcShortQuery2ToVirtuoso read file " + file.getPath() + " succeeded");
-			}
-		    } else {
-			System.out.println("LdbcShortQuery2ToVirtuoso --- ERROR: file " + file.getPath() + 
-					   " does not exist, or is a directory");		    
-		    }
+		if (!images.isEmpty()) {
+		    state.scanFiles(images, "LdbcShortQuery2ToVirtuoso");
 		}
 	    } catch (SQLException e) {
 		System.out.println("Err: LdbcShortQuery2 (" + operation.personId() + ")");
@@ -1283,30 +1352,9 @@ public class VirtuosoDb extends Db {
 		}
 		stmt1.close();
 		conn.close();
-
-		long file_size = 0;
-		long read_count = 0;
-		int ret = 0;
-		File file = new File(state.getPhotoDir() + "/" + image);
-		byte[] buf = new byte[4096];
-
-		if (file.exists() && !file.isDirectory()) {
-		    file_size = file.length();
-		    FileInputStream in = new FileInputStream(file);
-		    while ((ret = in.read(buf)) != -1) {
-			read_count += ret;
-		    }
-		    in.close();
-
-		    if (read_count != file_size) {
-			System.out.println("LdbcShortQuery4ToVirtuoso --- ERROR: read file " + file.getPath() + 
-					   " failed, read " + read_count + "bytes, file size " + file_size + " bytes");
-		    } else if (state.isPrintResults()) {
-			System.out.println("LdbcShortQuery4ToVirtuoso read file " + file.getPath() + " succeeded");
-		    } 
-		} else {
-		    System.out.println("LdbcShortQuery4ToVirtuoso --- ERROR: file " + file.getPath() + 
-				       " does not exist, or is a directory");   
+		
+		if (image != null) {
+		    state.scanFile(image, "LdbcShortQuery4ToVirtuoso");
 		}
 	    } catch (SQLException e) {
 		// TODO Auto-generated catch block
@@ -1921,7 +1969,6 @@ public class VirtuosoDb extends Db {
 	public void executeOperation(LdbcUpdate6AddPost operation, VirtuosoDbConnectionState state, ResultReporter resultReporter) throws DbException {
 	    Connection conn = state.getConn();
 	    CallableStatement cs = null;
-	    File file = null;
 
 	    try {
 		if (state.isPrintNames())
@@ -1966,26 +2013,7 @@ public class VirtuosoDb extends Db {
 
 		String image = operation.imageFile();
 		if (image != null) {
-		    file = new File(state.getPhotoDir() + "/" + image);
-		    if (!file.exists()) {
-			if (file.createNewFile()) {
-			    FileOutputStream out = new FileOutputStream(file, true);
-			    StringBuffer sb = new StringBuffer();
-
-			    for (i = 0; i < state.getPhotoSize() / 50; i ++) {
-				sb.append("superblocksuperblocksuperblocksuperblocksuperblock");
-			    }
-			    out.write(sb.toString().getBytes("utf-8"));
-			    out.close();
-			    if (state.isPrintResults()) {
-				System.out.println("LdbcUpdate6AddPostToVirtuoso create file " + file.getPath() + " succeeded");
-			    }
-			} else {
-			    System.out.println("LdbcUpdate6AddPostToVirtuoso --- ERROR: create file " + file.getPath() + " failed");
-			}
-		    } else {
-			System.out.println("LdbcUpdate6AddPostToVirtuoso --- ERROR: create file " + file.getPath() + " failed, it already exists");
-		    }
+		    state.createAndFillFile(image, "LdbcUpdate6AddPostToVirtuoso");
 		}
 	    } catch (Throwable e) {
 		// TODO Auto-generated catch block
