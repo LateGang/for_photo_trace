@@ -1169,7 +1169,7 @@ public class VirtuosoDb extends Db {
 		    File file = new File(state.getPhotoDir() + "/" + image);
 		    byte[] buf = new byte[4096];
 		
-		    if (file.exists() || !file.isDirectory()) {
+		    if (file.exists() && !file.isDirectory()) {
 			file_size = file.length();
 			FileInputStream in = new FileInputStream(file);
 			while ((ret = in.read(buf)) != -1) {
@@ -1181,7 +1181,7 @@ public class VirtuosoDb extends Db {
 			    System.out.println("LdbcShortQuery2ToVirtuoso --- ERROR: read file " + file.getPath() + 
 					       " failed, read " + read_count + "bytes, file size " + file_size + " bytes");
 			} else if (state.isPrintResults()) {
-			    System.out.println("LdbcUpdate6AddPostToVirtuoso read file " + file.getPath() + " succeeded");
+			    System.out.println("LdbcShortQuery2ToVirtuoso read file " + file.getPath() + " succeeded");
 			}
 		    } else {
 			System.out.println("LdbcShortQuery2ToVirtuoso --- ERROR: file " + file.getPath() + 
@@ -1255,6 +1255,7 @@ public class VirtuosoDb extends Db {
 	    int results_count = 0;
 	    Connection conn = state.getConn();
 	    CallableStatement stmt1 = null;
+	    String image = null;
 	    try {
 		stmt1 = conn.prepareCall("post_view_1(?)");
 		stmt1.setLong(1, operation.messageId());
@@ -1270,15 +1271,43 @@ public class VirtuosoDb extends Db {
 		    while (rs.next()) {
 			results_count++;
 			String messageContent = new String(rs.getString(1).getBytes("ISO-8859-1"));;
-			if (messageContent == null || messageContent.length() == 0)
+			if (messageContent == null || messageContent.length() == 0) {
 			    messageContent = new String(rs.getString(2).getBytes("ISO-8859-1"));
+			    image = messageContent;
+			}
 			long creationDate = rs.getLong(3);
 			RESULT = new LdbcShortQuery4MessageContentResult(messageContent, creationDate);
 			if (state.isPrintResults())
 			    System.out.println(RESULT.toString());
 		    }
 		}
-		stmt1.close();conn.close();
+		stmt1.close();
+		conn.close();
+
+		long file_size = 0;
+		long read_count = 0;
+		int ret = 0;
+		File file = new File(state.getPhotoDir() + "/" + image);
+		byte[] buf = new byte[4096];
+
+		if (file.exists() && !file.isDirectory()) {
+		    file_size = file.length();
+		    FileInputStream in = new FileInputStream(file);
+		    while ((ret = in.read(buf)) != -1) {
+			read_count += ret;
+		    }
+		    in.close();
+
+		    if (read_count != file_size) {
+			System.out.println("LdbcShortQuery4ToVirtuoso --- ERROR: read file " + file.getPath() + 
+					   " failed, read " + read_count + "bytes, file size " + file_size + " bytes");
+		    } else if (state.isPrintResults()) {
+			System.out.println("LdbcShortQuery4ToVirtuoso read file " + file.getPath() + " succeeded");
+		    } 
+		} else {
+		    System.out.println("LdbcShortQuery4ToVirtuoso --- ERROR: file " + file.getPath() + 
+				       " does not exist, or is a directory");   
+		}
 	    } catch (SQLException e) {
 		// TODO Auto-generated catch block
 		System.out.println("Err: LdbcShortQuery4 (" + operation.messageId() + ")");
