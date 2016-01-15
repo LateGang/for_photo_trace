@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.Random;
 import virtuoso.jdbc4.VirtuosoConnectionPoolDataSource;
 
 public class VirtuosoDb extends Db {
@@ -140,7 +141,11 @@ public class VirtuosoDb extends Db {
 		private VirtuosoConnectionPoolDataSource ds;
 		//    	private Connection conn;
 		//        private String endPoint;
-		private int photoSize;	// bytes
+		private String photoSizeCdfFile; // bytes, distribution
+		private List<Integer> photoSize = null; // bytes
+		private List<Double> photoSizeCdf = null;	// [0, 1]
+		private Random random;
+		
 		private String queryDir;
 		private String photoDir;
 		private boolean runSql;
@@ -173,11 +178,32 @@ public class VirtuosoDb extends Db {
 				System.out.println(" --- ERROR: photoDir is not set");
 			}
 
-			String tmp = properties.get("photoSize");
-			if (tmp == null) {
-				photoSize = 1024; // By default, 1KB;
+			String photoSizeCdfFile = properties.get("photoSizeCdfFile");
+			photoSize = new ArrayList<Integer>();
+			photoSizeCdf = new ArrayList<Double>();
+			random = new Random();
+			if (photoSizeCdfFile == null) {
+				System.out.println(" --- ERROR: photoSizeCdfFile is not set");
 			} else {
-				photoSize = Integer.parseInt(tmp);
+				try {
+					InputStream in = new FileInputStream(photoSizeCdfFile);
+					InputStreamReader inr = new InputStreamReader(in, Charset.forName("UTF-8"));
+					BufferedReader br = new BufferedReader(inr);
+
+					String line = null;
+					int count = 0;
+					while ((line = br.readLine()) != null) {
+						String[] fields = line.split(" ");
+						photoSize.add(count,  new Integer(fields[0]));
+						photoSizeCdf.add(count, new Double(fields[1]));
+						System.out.println("photo size distribution cdf " +
+										   photoSize.get(count) + " " + photoSizeCdf.get(count));
+						count ++;
+					}
+					
+				} catch (Throwable e) {
+					e.printStackTrace();
+				}
 			}
 			runSql = properties.get("run_sql").equals("true") ? true : false;
 			printNames = properties.get("printQueryNames").equals("true") ? true : false;
@@ -208,7 +234,20 @@ public class VirtuosoDb extends Db {
 		}
 
 		public int getPhotoSize() {
-			return photoSize;
+			double value = random.nextDouble();
+			int size = 1024;
+			int i = 0;
+			
+			for (i = 0; i < photoSizeCdf.size(); i ++) {
+				if (value <= photoSizeCdf.get(i).doubleValue()) {
+					size = photoSize.get(i).intValue();
+				}
+			}
+			if (i >= photoSizeCdf.size()) {
+				System.out.println(" --- ERROR: wrong photo size");
+			}
+			
+			return size;
 		}
 	
 		public boolean isRunSql() {
@@ -238,27 +277,31 @@ public class VirtuosoDb extends Db {
 
 		public void createAndFillFile(String name, String tag) {
 			File file = null;
+			int size = 0;
 
 			try {
-				file = new File(photoDir + "/" + name);
-				if (!file.exists()) {
-					if (file.createNewFile()) {
-						FileOutputStream out = new FileOutputStream(file, true);
-						StringBuffer sb = new StringBuffer();
+				for (int i = 0; i < photoSize.size(); i ++) {
+					size = photoSize.get(i).intValue();
+					file = new File(photoDir + "/" + name+ "." + size);
+					if (!file.exists()) {
+						if (file.createNewFile()) {
+							FileOutputStream out = new FileOutputStream(file, true);
+							StringBuffer sb = new StringBuffer();
 
-						for (int i = 0; i < photoSize / 64; i ++) {
-							sb.append("superblocksuperblocksuperblocksuperblocksuperblocksuperblocksupe");
-						}
-						out.write(sb.toString().getBytes("utf-8"));
-						out.close();
-						if (printResults) {
-							System.out.println(tag + " create file " + file.getPath() + " succeeded");
+							for (int j = 0; i < size / 64; j ++) {
+								sb.append("superblocksuperblocksuperblocksuperblocksuperblocksuperblocksupe");
+							}
+							out.write(sb.toString().getBytes("utf-8"));
+							out.close();
+							if (printResults) {
+								System.out.println(tag + " create file " + file.getPath() + " succeeded");
+							}
+						} else {
+							System.out.println(tag + " --- ERROR: create file " + file.getPath() + " failed");
 						}
 					} else {
-						System.out.println(tag + " --- ERROR: create file " + file.getPath() + " failed");
+						System.out.println(tag + " --- ERROR: create file " + file.getPath() + " failed, it already exists");
 					}
-				} else {
-					System.out.println(tag + " --- ERROR: create file " + file.getPath() + " failed, it already exists");
 				}
 			} catch (Throwable e) {
 				e.printStackTrace();
@@ -339,9 +382,11 @@ public class VirtuosoDb extends Db {
 
 		public void scanFiles(List<String> names, String tag) {
 			int count= names.size();
+			int size = getPhotoSize();
+			
 			for (int i = 0; i < count; i ++) {
 				String name = names.get(i);
-				scanFile(name, tag);
+				scanFile(name + "." + size, tag);
 			}
 		}
     }
