@@ -241,10 +241,11 @@ public class VirtuosoDb extends Db {
 			for (i = 0; i < photoSizeCdf.size(); i ++) {
 				if (value <= photoSizeCdf.get(i).doubleValue()) {
 					size = photoSize.get(i).intValue();
+					break;
 				}
 			}
 			if (i >= photoSizeCdf.size()) {
-				System.out.println(" --- ERROR: wrong photo size");
+				System.out.println(" --- ERROR: wrong photo size, random " + value);
 			}
 			
 			return size;
