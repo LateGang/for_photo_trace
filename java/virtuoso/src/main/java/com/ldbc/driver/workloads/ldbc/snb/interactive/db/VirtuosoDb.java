@@ -193,14 +193,14 @@ public class VirtuosoDb extends Db {
 					String line = null;
 					int count = 0;
 					while ((line = br.readLine()) != null) {
-						String[] fields = line.split(" ");
+						String[] fields = line.split(",");
+						System.out.println(fields[0] + "/" + fields[1]);
 						photoSize.add(count,  new Integer(fields[0]));
 						photoSizeCdf.add(count, new Double(fields[1]));
 						System.out.println("photo size distribution cdf " +
 										   photoSize.get(count) + " " + photoSizeCdf.get(count));
 						count ++;
 					}
-					
 				} catch (Throwable e) {
 					e.printStackTrace();
 				}
@@ -288,7 +288,7 @@ public class VirtuosoDb extends Db {
 							FileOutputStream out = new FileOutputStream(file, true);
 							StringBuffer sb = new StringBuffer();
 
-							for (int j = 0; i < size / 64; j ++) {
+							for (int j = 0; j < size / 64; j ++) {
 								sb.append("superblocksuperblocksuperblocksuperblocksuperblocksuperblocksupe");
 							}
 							out.write(sb.toString().getBytes("utf-8"));
