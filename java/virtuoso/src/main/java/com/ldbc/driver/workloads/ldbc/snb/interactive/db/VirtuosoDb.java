@@ -1440,7 +1440,7 @@ public class VirtuosoDb extends Db {
 				conn.close();
 		
 				if (image != null) {
-					state.scanFile(image, "LdbcShortQuery4ToVirtuoso");
+					state.scanFile(image + "." + state.getPhotoSize(), "LdbcShortQuery4ToVirtuoso");
 				}
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
