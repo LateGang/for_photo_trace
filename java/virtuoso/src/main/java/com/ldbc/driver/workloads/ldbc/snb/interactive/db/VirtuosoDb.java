@@ -186,10 +186,7 @@ public class VirtuosoDb extends Db {
 				System.out.println(" --- ERROR: photoSizeCdfFile is not set");
 			} else {
 				try {
-					InputStream in = new FileInputStream(photoSizeCdfFile);
-					InputStreamReader inr = new InputStreamReader(in, Charset.forName("UTF-8"));
-					BufferedReader br = new BufferedReader(inr);
-
+					BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(photoSizeCdfFile), Charset.forName("UTF-8")));
 					String line = null;
 					int count = 0;
 					while ((line = br.readLine()) != null) {
@@ -201,6 +198,7 @@ public class VirtuosoDb extends Db {
 										   photoSize.get(count) + " " + photoSizeCdf.get(count));
 						count ++;
 					}
+					br.close();
 				} catch (Throwable e) {
 					e.printStackTrace();
 				}
@@ -234,9 +232,9 @@ public class VirtuosoDb extends Db {
 		}
 
 		public int getPhotoSize() {
-			double value = random.nextDouble();
-			int size = 1024;
 			int i = 0;
+			int size = 1024;
+			double value = random.nextDouble();
 			
 			for (i = 0; i < photoSizeCdf.size(); i ++) {
 				if (value <= photoSizeCdf.get(i).doubleValue()) {
@@ -314,9 +312,7 @@ public class VirtuosoDb extends Db {
 			List<String> images = new ArrayList<String>();
 			try {
 				if (postFileName != null) {
-					InputStream in = new FileInputStream(postFileName);
-					InputStreamReader inr = new InputStreamReader(in, Charset.forName("UTF-8"));
-					BufferedReader br = new BufferedReader(inr);
+					BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(postFileName), Charset.forName("UTF-8")));
 		    
 					String line = null;
 					int line_count = 0;
@@ -329,6 +325,7 @@ public class VirtuosoDb extends Db {
 							image_count ++;
 						}
 					}
+					br.close();
 
 					if (!images.isEmpty()) {
 						int count = images.size();
@@ -382,7 +379,7 @@ public class VirtuosoDb extends Db {
 		}
 
 		public void scanFiles(List<String> names, String tag) {
-			int count= names.size();
+			int count = names.size();
 			int size = getPhotoSize();
 			
 			for (int i = 0; i < count; i ++) {
