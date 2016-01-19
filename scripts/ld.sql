@@ -159,43 +159,10 @@ from place_f table option (from f)   where idn (p_placeid) is not null;
   signal ('BADFI', 'snb load does not know file type');
 }
 
-
-ld_dir ('outputDir', '%.csv.gz', 'sql:snb_load (?)');
-ld_dir ('outputDir', '%.csv', 'sql:snb_load (?)');
+ld_dir ('/mnt/snb/social_network_sf1', '%.csv', 'sql:snb_load (?)');
 delete from load_list where ll_file like '%updateStrea%';
 
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
-rdf_loader_run () &
+rdf_loader_run();
 
 wait_for_children;
 
