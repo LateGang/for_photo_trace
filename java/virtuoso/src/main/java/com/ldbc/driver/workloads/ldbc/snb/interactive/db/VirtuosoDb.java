@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.Random;
+import java.util.Hashtable;
 import virtuoso.jdbc4.VirtuosoConnectionPoolDataSource;
 
 public class VirtuosoDb extends Db {
@@ -144,6 +145,7 @@ public class VirtuosoDb extends Db {
 		private String photoSizeCdfFile; // bytes, distribution
 		private List<Integer> photoSize = null; // bytes
 		private List<Double> photoSizeCdf = null;	// [0, 1]
+		private Map<Integer, StringBuffer> sizeString = null;
 		private Random random;
 		
 		private String queryDir;
@@ -181,6 +183,7 @@ public class VirtuosoDb extends Db {
 			String photoSizeCdfFile = properties.get("photoSizeCdfFile");
 			photoSize = new ArrayList<Integer>();
 			photoSizeCdf = new ArrayList<Double>();
+			sizeString = new Hashtable<Integer, StringBuffer>();
 			random = new Random();
 			if (photoSizeCdfFile == null) {
 				System.out.println(" --- ERROR: photoSizeCdfFile is not set");
@@ -194,6 +197,13 @@ public class VirtuosoDb extends Db {
 						System.out.println(fields[0] + "/" + fields[1]);
 						photoSize.add(count,  new Integer(fields[0]));
 						photoSizeCdf.add(count, new Double(fields[1]));
+
+						StringBuffer sb = new StringBuffer();
+						for (int j = 0; j < Integer.parseInt(fields[0]) / 64; j ++) {
+							sb.append("superblocksuperblocksuperblocksuperblocksuperblocksuperblocksupe");
+						}
+						
+						sizeString.put(new Integer(fields[0]), sb);
 						System.out.println("photo size distribution cdf " +
 										   photoSize.get(count) + " " + photoSizeCdf.get(count));
 						count ++;
@@ -285,11 +295,11 @@ public class VirtuosoDb extends Db {
 					if (!file.exists()) {
 						if (file.createNewFile()) {
 							FileOutputStream out = new FileOutputStream(file, true);
-							StringBuffer sb = new StringBuffer();
-
-							for (int j = 0; j < size / 64; j ++) {
-								sb.append("superblocksuperblocksuperblocksuperblocksuperblocksuperblocksupe");
+							StringBuffer sb = sizeString.get(photoSize.get(i));
+							if (sb == null) {
+								System.out.println(tag + "no such size string " + size);
 							}
+							
 							out.write(sb.toString().getBytes("utf-8"));
 							out.close();
 							if (printResults) {
