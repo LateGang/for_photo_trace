@@ -17,6 +17,11 @@
 	  <scope>system</scope>
 	  <systemPath>${project.basedir}/virtjdbc4_lib/virtjdbc4.jar</systemPath>
 	</dependency>
+  	<dependency>
+  	  <groupId>commons-codec</groupId>
+  	  <artifactId>commons-codec</artifactId>
+  	  <version>1.10</version>
+  	</dependency>
   </dependencies>
   <dependencyManagement>
   	<dependencies>

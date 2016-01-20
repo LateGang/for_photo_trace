@@ -32,6 +32,7 @@ import java.util.TimeZone;
 import java.util.Random;
 import java.util.Hashtable;
 import virtuoso.jdbc4.VirtuosoConnectionPoolDataSource;
+import org.apache.commons.codec.digest.*;
 
 public class VirtuosoDb extends Db {
     private VirtuosoDbConnectionState virtuosoDbConnectionState;
@@ -291,7 +292,13 @@ public class VirtuosoDb extends Db {
 			try {
 				for (int i = 0; i < photoSize.size(); i ++) {
 					size = photoSize.get(i).intValue();
-					file = new File(photoDir + "/" + name+ "." + size);
+					String filename = name+ "." + size;
+					String pathname = photoDir + "/" + DigestUtils.sha1Hex(filename).substring(0, 2) +
+						"/" + DigestUtils.sha1Hex(filename).substring(2, 4);
+					file = new File(pathname + "/" + filename);
+					if (!file.getParentFile().exists()) {
+						file.getParentFile().mkdirs();
+					}
 					if (!file.exists()) {
 						if (file.createNewFile()) {
 							FileOutputStream out = new FileOutputStream(file, true);
@@ -355,15 +362,18 @@ public class VirtuosoDb extends Db {
 			}
 		}
 
-		public void scanFile(String name, String tag) {
+		public void scanFile(String filename, String tag) {
 			int ret = 0;
 			File file = null;
 			long file_size = 0;
 			long read_count = 0;
 
 			try {
-				file = new File(photoDir + "/" + name);
-				byte[] buf = new byte[4096];
+				String pathname = photoDir + "/" + DigestUtils.sha1Hex(filename).substring(0, 2) +
+					"/" + DigestUtils.sha1Hex(filename).substring(2, 4);
+				
+				file = new File(pathname + "/" + filename);
+				byte[] buf = new byte[1024 * 64];
 
 				if (file.exists() && !file.isDirectory()) {
 					file_size = file.length();
